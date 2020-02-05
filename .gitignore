@@ -1,8 +1,2 @@
-*/.gradle/
-*/.idea/
-*/gradle/
-*/out/
-*/target/
-*/bin/
-*/node_modules
-/.idea/
+.idea
+.gradle
