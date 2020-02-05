@@ -1,0 +1,26 @@
+\section{Middleware}
+
+Middlewarefunktionen sind Funktionen, die Zugriff auf das Request, das Response-Objekt und die nächste Middlewarefunktion im Request/Response-Cycle haben. Die nächste Middlewarefunktion wird im Allgemeinen durch die Variable \textbf{next} bezeichnet.
+Über Middlewarefunktionen lassen sich folgende Tasks ausführen:
+\begin{itemize}
+	\item Ausführen von Code
+	\item Vornehmen von Änderungen Request- und Response-Objekt
+	\item Beenden des Request/Response-Cycle
+	\item Aufrufen der nächsten Middleware im Stack
+\end{itemize}
+
+\subsection{JSON}
+Die Handler-Methoden erwarten JSON, deshalb muss aus dem Request-Payload zuerst ein JSON-Objekt generiert werden.
+
+\begin{minted}{javascript}
+	app.use(bodyParser.json());
+\end{minted}
+
+\subsection{CORS}
+
+\begin{minted}{javascript}
+	const cors = require('cors');
+	app.use(cors());
+\end{minted}
+
+	

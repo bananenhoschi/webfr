@@ -1,0 +1,146 @@
+\section{REST}
+\subsection{RESTFullness}
+\begin{itemize}
+	\item Stufe 0 - RESTless -> kein REST Support
+	\item Stufe 1 - Ressourcen -> Jede identifizierbare Ressource hat eine eigene URI.
+	\item Stufe 2 - HTTP Verben -> GET, POST, HEAD, PUT, DELETE und OPTIONS werden gemäss ihrer
+Spezifikation unterstützt.
+	\item Stufe 3 – Hypermedia -> Verknüpfung von Ressourcen und Repräsentationen durch Hyperlinks.
+\end{itemize}
+
+\subsection{Cross-Origin Resource Sharing (CORS)}
+Cross-Origin Resource Sharing (CORS)
+CORS ist ein Mechanismus, um Webbrowsern oder auch anderen Webclients Cross-Origin-Requests zu ermöglichen. Zugriffe dieser Art sind normalerweise durch die Same-Origin-Policy untersagt. CORS ist ein Kompromiss zugunsten grösserer Flexibilität im Internet unter Berücksichtigung möglichst hoher Sicherheitsmassnahmen.
+CORS definiert eine Reihe von neuen Headern im HTTP- Protokoll, die es dem Server erlauben gezielt REST-Aufrufe für bestimmte Domains zuzulassen.
+
+\subsubsection{Preflight Request}
+
+Durch den Preflight Request werden die CORS (Cross-Origin Resource Sharing)-Regeln für den Serverdienst abgefragt, bevor die tatsächliche Anforderung gesendet wird.
+\begin{itemize}
+	\item Ein Webbrowser oder ein anderer Benutzer-Agent sendet eine Preflight- Anforderung, die die Ursprungsdomäne, die Methode und die Header der tatsächlichen Anforderung umfasst.
+	\item Wenn CORS für den Serverdienst aktiviert wird, dann wertet der Serverdienst die Preflight-Anforderung anhand der CORS-Regeln aus und akzeptiert die Anforderung bzw. weist sie zurück.
+\end{itemize}
+
+\subsection{Async Kommunikation}
+\subsubsection{Synchrone Kommunikation}
+Der Client wartet nach Absenden der Anfrage an den Server so lange, bis er eine Rückantwort erhält, und kann dann erst andere Aktivitäten ausführen.
+\subsubsection{Asynchrone Kommunikation} 
+Der Client sendet die Anfrage an den Server und arbeitet sofort weiter. Beim Eintreffen der Rückantwort werden dann bestimmte Routinen beim Client aufgerufen.
+Die durch den Server initiierten Rückrufe (Callbacks) erfordern zusätzliche Kontrolle beim Client, wenn ungewünschte Unterbrechungen der Arbeit vermieden werden sollen.
+
+\textbf{Vorteile}
+\begin{itemize}
+	\item Sendender Prozess kann weiterarbeiten, noch während die Nachricht übertragen wird.
+	\item Es kann ein höherer Grad an Parallelität erreicht werden.
+	\item Die Entkoppelung von Sender und Empfänger ist stärker, d.h. grösser Unabhängigkeit beider Komponenten.	
+\end{itemize}
+
+\textbf{Nachteile}
+\begin{itemize}
+	\item Der Sender weiss nicht, ob / wann die Nachricht angekommen ist. Das Debugging der Anwendung wird anspruchsvoller.
+	\item Betriebssystem muss Puffer verwalten.
+\end{itemize}
+
+\subsection{Event Loop}
+
+JavaScript basiert auf einem Event Loop
+\begin{itemize}
+	\item $"$queue.waitForMessage()$"$ wartet synchron auf eine Message
+	\item Sobald Message vorhanden, wird die entsprechende Callback-Funktion auf den Stack gelegt und aufgerufen.
+	\item Die Callback-Funktion wird komplett abgearbeitet.
+	\item Erst wenn Callback-Funktion beendet ist, kann der der Event-Loop die Queue auf die nächste Message testen.
+\end{itemize}
+
+EventLoop ist Single-Threaded
+
+\textbf{Vorteile}
+\begin{itemize}
+	\item Einfach, vor allem für die GUI-Programmierung
+	\item Event und Rendering werden sequentiell ausgeführt
+	\item Keine synchronisierung der Threads notwendig
+	\item Typisches Programmiermodell für GUI-Entwicklung (z.B. auch in Android)
+\end{itemize}
+\textbf{Nachteile:}
+\begin{itemize}
+	\item Aufwändige, zeitintensive Aufgaben können GUI blockieren, dadurch schlechtes User Erlebnis
+\end{itemize}
+
+Darum sollten zeitintensive Aufgaben asynchron programmiert werden (Ajax: Asynchronous JavaScript and XML)
+
+\subsection{Rest Controller}
+
+\begin{minted}[breaklines]{java}
+@CrossOrigin
+@RestController
+@RequestMapping("/questionnaires")
+@RequiredArgsConstructor
+@Slf4j
+public class QuestionnaireController {
+
+    private final QuestionnaireRepository questionnaireRepository;
+    
+    @GetMapping
+    public ResponseEntity<List<Questionnaire>> findAll() {
+        Sort sort = Sort.by(Sort.Direction.ASC, "title");
+        return new ResponseEntity<>(questionnaireRepository.findAll(sort), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity findById(@PathVariable String id) {
+        log.info("Find by id {}", id);
+        Optional<Questionnaire> questionnaire = questionnaireRepository.findById(id);
+        if (questionnaire.isPresent()) {
+            log.info("Find a Questionnaire for id {}", id);
+            return new ResponseEntity(questionnaire.get(), HttpStatus.OK);
+        }
+        log.error("No Questionnaire found for id {}", id);
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @PostMapping
+    public ResponseEntity<Questionnaire> create(@Valid @RequestBody Questionnaire questionnaire, BindingResult result) {
+        if (result.hasErrors()) {
+            return new ResponseEntity<>(HttpStatus.PRECONDITION_FAILED);
+        }
+        questionnaire = questionnaireRepository.save(questionnaire);
+        log.debug("Created questionnaire with id=" + questionnaire.getId());
+        return new ResponseEntity<>(questionnaire, HttpStatus.CREATED);
+    }
+
+    @PutMapping(value = "/{id}")
+    public ResponseEntity<Questionnaire> update(@PathVariable String id,
+                                                @Valid @RequestBody Questionnaire questionnaire, BindingResult result) {
+        if (result.hasErrors()) {
+            return new ResponseEntity<>(HttpStatus.PRECONDITION_FAILED);
+        }
+        Optional<Questionnaire> questionnaireOptional = questionnaireRepository.findById(id);
+        if (questionnaireOptional.isPresent()) {
+            Questionnaire updateQuestionnaire = questionnaireOptional.get();
+            if (questionnaire.getTitle() != null) {
+                updateQuestionnaire.setTitle(questionnaire.getTitle());
+            }
+            if (questionnaire.getDescription() != null) {
+                updateQuestionnaire.setDescription(questionnaire.getDescription());
+            }
+            questionnaire = questionnaireRepository.save(updateQuestionnaire);
+            log.debug("Updated questionnaire with id=" + updateQuestionnaire.getId());
+            return new ResponseEntity<Questionnaire>(updateQuestionnaire, HttpStatus.OK);
+        }
+        log.debug("No questionnaire with id=" + id + " found");
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @DeleteMapping(value = "/{id}")
+    public ResponseEntity<String> delete(@PathVariable String id) {
+        Optional<Questionnaire> questionnaireOptional = questionnaireRepository.findById(id);
+        if (questionnaireOptional.isPresent()) {
+            questionnaireRepository.deleteById(id);
+            log.debug("Deleted questionnaire with id=" + id);
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        log.debug("No questionnaire with id=" + id + " found");
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+}	
+\end{minted}
+

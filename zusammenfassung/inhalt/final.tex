@@ -1,0 +1,539 @@
+\section{Final Flashcard}
+
+\subsection{index.js}
+
+\inputminted{javascript}{src/index.js}
+
+\subsection{App.js}
+
+\begin{minted}{javascript}
+import React, { useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import _ from 'lodash'
+import { Container } from 'reactstrap'
+
+import Header from './Header'
+import QuestionnaireContainer from '../questionnaire/QuestionnaireContainer'
+import Message from './Message'
+import Footer from './Footer'
+import doFetch from '../network/NetworkUtil'
+
+/**
+ * Die Wurzel der React-App.
+ */
+const App = () => {
+
+    const config = useSelector(state => state.config, _.isEqual)
+    const error = useSelector(state => state.error, _.isEqual)
+    const message = useSelector(state => state.message, _.isEqual)
+    const dispatch = useDispatch()
+
+    const readConfig = () => {
+        dispatch(
+            doFetch({
+                url: 'application.json',
+                actionType: 'CONFIG'
+            })
+        )
+    }
+
+    useEffect(readConfig, [])
+
+    const renderQuestionnaireContainer = config => 
+        config ? <QuestionnaireContainer serverUrl={ `${ config.url }/questionnaires` } /> : null
+
+    const renderMessage = () =>
+        error ? <Message message={ message } /> : null 
+
+    return <Container>
+        <Header title='Flashcard Client with React' subtitle='Version 3' />
+        { renderQuestionnaireContainer(config) }
+        { renderMessage() }
+        <Footer message='@ The FHNW Team' />
+    </Container>
+}
+
+export default App
+\end{minted}
+
+\subsection{Header.js}
+\begin{minted}{javascript}
+import React from 'react'
+import { Jumbotron } from 'reactstrap'
+
+const Header = ({ title, subtitle }) => 
+    <Jumbotron >
+        <h1>{ title }</h1>
+        <h3>{ subtitle }</h3>
+    </Jumbotron >
+
+export default Header
+\end{minted}
+
+\subsection{Footer.js}
+
+\begin{minted}{javascript}
+import React from 'react'
+
+// Ohne Destructuring.
+const Footer = props => 
+    <section>
+        { props.message }
+    </section>
+
+export default Footer
+\end{minted}
+
+\subsection{Message.js}
+
+\begin{minted}{javascript}
+import React from 'react'
+import { Alert } from 'reactstrap'
+
+/**
+ * Diese Komponente zeigt eine Meldung an den Benutzer an. Falls die Nachricht 
+ * null oder ein Leerstring ist, wird die Komponente nicht angezeigt.
+ * 
+ * @param {string} message Die Nachricht, welche angezeigt werden soll
+ * @param {bool} isError  Falls True, eine Fehlermeldung, sonst eine Infomeldung (Default: Fehlermeldung)
+ */
+const Message = ({ message, isError = true }) => 
+    message ? <Alert color={ isError ? 'danger' : 'info' }>{ message }</Alert> : null
+
+export default Message
+\end{minted}
+
+\subsection{Loader.js}
+
+\begin{minted}{javascript}
+import React from 'react'
+import loader from './images/loader.gif'
+
+const style = { display: 'block', margin: 'auto' }
+
+const Loader = () => 
+    <img style={ style } src={loader} height="128" alt="Loading..."/>
+
+export default Loader
+\end{minted}
+
+
+\subsection{Dialog.js}
+
+\begin{minted}{javascript}
+import React, { useState, useEffect } from 'react'
+import _ from 'lodash'
+import { Button, Modal, ModalHeader, ModalBody, Form, FormGroup, Col } from 'reactstrap'
+import InputGroup from './InputGroup'
+
+/**
+ * Modale Dialog Komponente.
+ * 
+ * @param buttonLabel Label des Buttons in der Tabelle
+ * @param title Der Titel des Dialogs
+ * @param actionButtonLabel Label des 'Submit' Buttons
+ * @param questionnaire Der Questionnaire
+ * @param isReadOnly True, wenn die Input Felder im Dialog nicht editierbar sind, false sonst (Default: false)
+ * @param actionFn Die Funktion, welche aufgerufen wird, wenn der Dialog geschlossen wird (Save, Close)
+ * @param css Die CSS Klasse für den Button in der Tabelle
+ */
+const Dialog = ({ buttonLabel, title, actionButtonLabel, questionnaire: qx, isReadOnly = false, actionFn, css }) => {
+
+    let [showModal, setShowModal] = useState(false)
+    let [questionnaire, setQuestionnaire] = useState(qx)
+    
+    /**
+     * Wir beobachten hier qx. qx ist der Questionnaire, der als props in die Komponente
+     * hinein gegeben wird. Wenn sich qx ändert, wollen wir diese Änderung übernehmen.
+     */
+    useEffect(() => {
+        setQuestionnaire(qx)
+    }, [qx])
+
+    const change = event => 
+        setQuestionnaire({ ...questionnaire, [event.target.name]: event.target.value })
+
+    const close = () => 
+        setShowModal(false)
+
+    const open = () => 
+        setShowModal(true)
+
+    /**
+     * Diese Funktion wird aufgerufen, wenn Save, oder Close gedrückt wird.
+     * Sie übernimmt die actionFn, die mittels props in diese Komponente 
+     * übergeben wird. Falls es keine actionFn gibt, wird identity verwendet.
+     * Diese Funktion schliesst nach dem Aufruf der actionFn den Dialog.
+     * 
+     * @param questionnaire Der Questionnaire
+     * @param actionFn Die Action-Funktion (update, create)
+     */
+    const onAction = (questionnaire, actionFn) => {
+        (actionFn || _.identity)(questionnaire)
+        close()
+    }
+    
+    return <div>
+        <Button color={ css || 'secondary'} onClick={ open }
+            className='float-right'>{ buttonLabel }</Button>
+        <Modal isOpen={ showModal } toggle={ close } size='lg' autoFocus={false}>
+            <ModalHeader toggle={ close } >
+                { title }
+            </ModalHeader>
+            <ModalBody>
+                <Form>
+                    <InputGroup 
+                        label='Title'
+                        id='formTitle'
+                        changeFn={ change }
+                        name='title'
+                        value={ questionnaire.title }
+                        isReadOnly={ isReadOnly }
+                    />
+
+                    <InputGroup 
+                        label='Description'
+                        id='formDescription'
+                        changeFn={ change }
+                        name='description'
+                        value={ questionnaire.description }
+                        isReadOnly={ isReadOnly }
+                    /> 
+
+                    <FormGroup>
+                        <Col className='clearfix' style={{ padding: '.2rem' }}>
+                            <Button className='float-right' color='secondary'
+                                onClick={ _.partial(onAction, questionnaire, actionFn) }>{ actionButtonLabel }</Button>
+                        </Col>
+                    </FormGroup>
+                </Form>
+            </ModalBody>
+        </Modal>
+    </div>
+}
+
+export default Dialog
+\end{minted}
+
+\subsection{InputGroup.js}
+
+\begin{minted}{javascript}
+import React from 'react'
+import { FormGroup, Label, Col, Input } from 'reactstrap'
+
+/**
+ * Zeigt ein Label und ein Input Field an.
+ * 
+ * @param {string} label Das Label des Input Field
+ * @param {string} id Die id, welche das Label und das Input Field verbindet (for - id)
+ * @param {function} changeFn Die onChange Funktion des Input Fields
+ * @param {string} name Der Name des Input Fields
+ * @param {string} value Der Value des Input Fields
+ * @param {bool} isReadOnly True, wenn das Input Field readonly ist, false sonst
+ */
+const InputGroup = ({ label, id, changeFn, name, value, isReadOnly }) => 
+    <FormGroup row>
+        <Label md={ 2 } for={ id }>
+            { label }
+        </Label>
+        <Col md={ 10 }>
+            <Input 
+                type='text' 
+                id={ id }
+                onChange={ changeFn }
+                name={ name }
+                value={ value }
+                plaintext={ isReadOnly }
+                disabled={ isReadOnly } />
+        </Col>
+    </FormGroup>
+
+export default InputGroup
+\end{minted}
+
+
+\subsection{QuestionnaireContainer.js}
+\begin{minted}{javascript}
+import React, { useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import _ from 'lodash'
+import QuestionnaireTable from './QuestionnaireTable'
+import QuestionnaireCreateDialog from './QuestionnaireCreateDialog'
+import doFetch from '../network/NetworkUtil'
+import Message from '../app/Message'
+import Loader from '../app/Loader'
+
+const headers = { headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+
+/**
+ * Die Questionnaire Funktionalität (Crerate, Tabelle der Questionnaires).
+ * 
+ * @param {string} serverUrl Die URL des Backends
+ */
+const QuestionnaireContainer = ({ serverUrl }) => {
+
+    const qs = useSelector(state => state.qs, _.isEqual)
+    const error = useSelector(state => state.error, _.isEqual)
+    const message = useSelector(state => state.message, _.isEqual)
+    const loading = useSelector(state => state.loading, _.isEqual)
+    const dispatch = useDispatch()
+
+    const readAll = () => {
+        dispatch(
+            doFetch({
+                url: serverUrl,
+                actionType: 'READ_QUESTIONNAIRES',
+                errorText: 'Not Found'
+            })
+        )
+    }
+
+    useEffect(readAll, [])
+
+    const create = async questionnaire => {
+        dispatch(
+            doFetch({
+                url: serverUrl,
+                requestObject: { method: 'POST', body: JSON.stringify(questionnaire), ...headers },
+                actionType: 'CREATE_QUESTIONNAIRES',
+                errorText: 'Creation failed.'
+            })
+        )
+    }
+
+    const update = questionnaire => {
+        dispatch(
+            doFetch({
+                url: `${ serverUrl }/${ questionnaire.id }`,
+                requestObject: { method: 'PUT', body: JSON.stringify(questionnaire), ...headers },
+                actionType: 'UPDATE_QUESTIONNAIRES',
+                errorText: 'Not found, or update failed.'
+            })
+        )
+    }
+
+    const _delete = id => {
+        dispatch(
+            doFetch({
+                url: `${ serverUrl }/${ id }`,
+                requestObject: { method: 'DELETE' },
+                actionType: 'DELETE_QUESTIONNAIRES',
+                errorText: 'Not found, or delete failed.'
+            })
+        )
+        // Ist nötig, wenn wir die REST Schnittstelle nicht verändern wollen.
+        // Besser wäre es, wenn wir das gelöschte Questionnaire zurückgeben
+        // und dann im NetworkUtil die ID mittels Action an den Reducer mitgeben.
+        readAll()
+    }
+
+    const renderMessage = () => 
+        error ? <Message message={ message } /> : null
+
+    const renderQuestionnaireTable = (qs, update, _delete) => 
+        loading ? <Loader /> : <QuestionnaireTable qs={ qs } update={ update } _delete={ _delete } />
+
+    return <div>
+            <QuestionnaireCreateDialog create={ create } />
+            <h3>Questionnaires</h3>
+            { renderMessage() }
+            { renderQuestionnaireTable(qs, update, _delete) }
+        </div>
+}
+
+export default QuestionnaireContainer
+\end{minted}
+
+\subsection{QuestionnaireCreateDialog.js}
+\begin{minted}{javascript}
+import React from 'react'
+import Dialog from './Dialog'
+
+/**
+ * Erzeugt einen Questionnaire.
+ * 
+ * @param {function} create Die create Function
+ */
+const QuestionnaireCreateDialog = ({ create }) => {
+    return <Dialog 
+        buttonLabel='Add Questionnaire' 
+        title='Add Questionnaire' 
+        actionButtonLabel='Save'
+        questionnaire={ { title: '', description: '' } }
+        actionFn={ create } 
+        css='success' />
+}
+
+export default QuestionnaireCreateDialog
+\end{minted}
+
+
+\subsection{QuestionnaireShowDialog.js}
+\begin{minted}{javascript}
+import React from 'react'
+import Dialog from './Dialog'
+
+/**
+ * Zeigt einen Questionnaire (readonly) an.
+ * 
+ * @param {object} questionnaire Der Questionnaire, der angezeigt wird
+ */
+const QuestionnaireShowDialog = ({ questionnaire }) => 
+    <Dialog 
+        buttonLabel='Show' 
+        title='Show Questionnaire' 
+        actionButtonLabel='Close' 
+        questionnaire={ questionnaire }  
+        isReadOnly={ true } />
+
+export default QuestionnaireShowDialog
+\end{minted}
+
+\subsection{QuestionnaireTable.js}
+\begin{minted}{javascript}
+import React from 'react'
+import _ from 'lodash'
+import { Table } from 'reactstrap'
+import QuestionnaireTableElement from './QuestionnaireTableElement'
+
+/**
+ * Die Tabelle der Questionnaires und die dazugehörigen 
+ * Controls (Show, Edit, Delete).
+ * 
+ * @param {array} qs Die Liste der Questionnaires
+ * @param {function} update Die Funktion zum Updaten
+ * @param {function} _delete Die Funktion zum Löschen
+ */
+const QuestionnaireTable = ({ qs, update, _delete }) => 
+    <Table hover>
+        <tbody>
+        { 
+            _.map(qs, questionnaire => 
+                <QuestionnaireTableElement 
+                    key={ questionnaire.id } 
+                    questionnaire={ questionnaire }
+                    update={ update }
+                    _delete={ _delete } />
+            ) 
+        }
+        </tbody>
+    </Table>
+
+export default QuestionnaireTable
+\end{minted}
+
+\subsection{QuestionnaireTableElement.js}
+\begin{minted}{javascript}
+import React from 'react'
+import _ from 'lodash'
+import { Button } from 'reactstrap'
+import QuestionnaireShowDialog from './QuestionnaireShowDialog'
+import QuestionnaireUpdateDialog from './QuestionnaireUpdateDialog'
+
+/**
+ * Eine Zeile in der Tabelle.
+ * 
+ * @param {object} questionnaire Der Questionnaire, der angezeigt werden soll
+ * @param {function} update Die Funktion zum Updaten
+ * @param {function} _delete Die Funktion zum Löschen 
+ */
+const QuestionnaireTableElement = ({ questionnaire, update, _delete }) => (
+    <tr key={ questionnaire.id } >
+        <td>{ questionnaire.id }</td>
+        <td>{ questionnaire.title }</td>
+        <td>{ questionnaire.description }</td>
+        <td><QuestionnaireShowDialog questionnaire={ questionnaire } /></td>
+        <td><QuestionnaireUpdateDialog update={ update } questionnaire={ questionnaire } /></td>
+        <td><Button color='danger' 
+                    onClick={ _.partial(_delete, questionnaire.id) } 
+                    className='float-right' >Delete</Button>
+        </td>
+    </tr>
+)
+
+export default QuestionnaireTableElement
+\end{minted}
+
+\subsection{QuestionnaireUpdateDialog.js}
+\begin{minted}{javascript}
+import React from 'react'
+import Dialog from './Dialog'
+
+/**
+ * Passt einen bestehenden Questionnaire an.
+ * 
+ * @param {object} questionnaire Der Questionnaire, der angepasst werden soll
+ * @param {function} update Die update Funktion
+ */
+const QuestionnaireUpdateDialog =  ({ questionnaire, update }) => 
+    <Dialog 
+        buttonLabel='Edit' 
+        title='Edit Questionnaire' 
+        actionButtonLabel='Save'
+        questionnaire={ questionnaire } 
+        actionFn={ update } 
+        css='primary' />
+
+export default QuestionnaireUpdateDialog
+
+\end{minted}
+
+\subsection{reducers.js}
+
+\begin{minted}{javascript}
+import _ from 'lodash'
+
+const REDUCERS = {
+    'READ_QUESTIONNAIRES': (state, action) => ({ ...state, qs: action.data }),
+    'CREATE_QUESTIONNAIRES': (state, action) => ({ ...state, qs: [...state.qs, action.data ] }),
+    'UPDATE_QUESTIONNAIRES': (state, action) => ({ ...state, qs: _.map(state.qs, q => q.id === action.data.id ? action.data : q) }),
+    'DELETE_QUESTIONNAIRES': (state, action) => ({ ...state, qs: _.reject(state.qs, { id: action.data }) }),
+    'LOADING': (state, action) => ({ ...state, loading: action.data }),
+    'MESSAGE': (state, action) => ({ ...state, message: action.data }),
+    'ERROR': (state, action) => ({ ...state, error: action.data }),
+    'CONFIG': (state, action) => ({ ...state, config: action.data })
+}
+
+const reducer = (state, action) => _.get(REDUCERS, action.type, _.identity)(state, action)
+
+export default reducer
+\end{minted}
+
+
+\subsection{NetworkUtil.js}
+\begin{minted}{javascript}
+/**
+ * Eine Funktion, welche den Fetch-Request absetzt und die entsprechenden
+ * Actions an den Store dispatched.
+ * 
+ * @param {string} url Der URL
+ * @param {object} requestObject Das Objekt mit den Headern, Methoden (wenn nicht GET) (Optional)
+ * @param {string} actionType Der Action-Type
+ * @param {string} errorText Den Fehlertext
+ * @return {function} Die Dispatch Funktion für Redux-Thunk
+ */
+const doFetch = ({ url, requestObject, actionType, errorText }) => 
+    async dispatch => {
+        try {
+            dispatch({ type: 'LOADING', data: true })
+            const response = await fetch(url, requestObject)
+            if(response.ok) {
+                // Mit leerem Response umgehen:
+                const json = response.status !== 204 ? await response.json() : null
+                dispatch({ type: actionType, data: json })
+                dispatch({ type: 'ERROR', data: false })
+                dispatch({ type: 'MESSAGE', data: '' })
+            }
+            else {
+                throw new Error(`${ errorText }: ${ response.status }`)
+            }
+        }
+        catch(error) {
+            dispatch({ type: 'ERROR', data: true })
+            dispatch({ type: 'MESSAGE', data: error.message })
+        }
+        dispatch({ type: 'LOADING', data: false })
+    }
+
+export default doFetch
+\end{minted}

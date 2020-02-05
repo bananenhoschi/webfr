@@ -1,0 +1,79 @@
+\section{Tiny Url}
+\subsection{TinyUrlController}
+\begin{minted}[breaklines]{java}
+@Controller
+public class TinyUrlController {
+    private static final Log logger = LogFactory.getLog("BUMI");
+
+    @Autowired
+    private TinyUrlRepository tinyUrlRepository;
+
+    @GetMapping(value = "/urls", params = "form")
+    public String createForm(Model model) {
+        model.addAttribute("urlentry", new UrlEntry());
+        return "create";
+    }
+
+    @RequestMapping(value = "/{tinyUrl}", method = RequestMethod.GET)
+    public String redirectToTinyUrl(@PathVariable String tinyUrl, Model model) {
+        Optional<UrlEntry> urlEntry = tinyUrlRepository.findByTinyUrl(tinyUrl);
+        if(urlEntry.isPresent()){
+            return "redirect:" + urlEntry.get().getOriginalUrl();
+        }
+        return "404";
+    }
+
+    @RequestMapping(value="/urls", method = RequestMethod.POST)
+    public String create(@Valid UrlEntry urlEntry, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            result.getAllErrors().forEach(err -> logger.error(err.getDefaultMessage()));
+            model.addAttribute("text", "Result has errors!");
+            return "error";
+        }
+        if(tinyUrlRepository.findByTinyUrl(urlEntry.getTinyUrl()).isPresent()){
+            return "redirect:409"; //Need redirect to get out of POST
+        };
+
+
+        tinyUrlRepository.save(urlEntry);
+        return "redirect:/urls?form";
+    }
+}
+\end{minted}
+\subsection{AdminController}
+\begin{minted}[breaklines]{java}
+@Controller
+@RequestMapping("/admin")
+public class AdminController {
+    @Autowired
+    private TinyUrlRepository tinyUrlRepository;
+
+    @GetMapping
+    public String adminUi(Model model){
+        List<UrlEntry> list = tinyUrlRepository.findAll();
+        model.addAttribute("filterString", "");
+        model.addAttribute("tinyUrls", list);
+        return "/tinyUrl/list";
+
+    }
+
+    @GetMapping(params = "filterString")
+    public String filter(@RequestParam String filterString, Model model){
+        List<UrlEntry> list = tinyUrlRepository.findByTinyUrlLike(filterString);
+        model.addAttribute("filterString", filterString);
+        model.addAttribute("tinyUrls", list);
+        return "/tinyUrl/list";
+    }
+
+    @DeleteMapping(path = "/{tinyUrl}")
+    public String delete(@PathVariable String tinyUrl){
+        Optional<UrlEntry> url  = tinyUrlRepository.findByTinyUrl(tinyUrl);
+        if (url.isPresent()) {
+            tinyUrlRepository.delete(url.get());
+        } else {
+            return "redirect:404";
+        }
+    return "redirect:/admin";
+    }
+}
+\end{minted}
