@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: maincontent(~{::section})}">
+<body>
+<section layout:fragment="content">
+    <h3 th:text="${questionnaire.title}"></h3>
+    <div style="padding-top: 10px;">
+        <p th:text="${questionnaire.description}"></p>
+    </div>
+</section>
+</body>
+
+</html>

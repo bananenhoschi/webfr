@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: maincontent(~{::section})}">
+<body>
+<section>
+    <a class="btn btn-success float-right" href="?form">
+        Hinzufügen
+    </a>
+    <h3>Fragebögen</h3>
+    <div th:if="${questionnaires.isEmpty()}">
+        <h2 style="text-align: center">No Questionnaires found</h2>
+    </div>
+    <table width="100%" cellpadding="5">
+        <tbody>
+        <tr th:each="questionnaire : ${questionnaires}">
+            <td colspan="2" style="vertical-align: middle;" th:text="${questionnaire.title}"/>
+            <td colspan="10" style="vertical-align: middle;" th:text="${questionnaire.description}"/>
+
+            <td>
+                <div class="btn-group float-right" role="group">
+                    <div style="padding: 2px">
+                        <form action="#" th:action="@{/questionnaires} + '/' + ${questionnaire.id}">
+                            <button type="submit" class="btn btn-outline-primary ">
+                                Show
+                            </button>
+                        </form>
+                    </div>
+                    <div style="padding: 2px">
+                        <form action="#" th:action="@{/questionnaires} + '/update/' + ${questionnaire.id}"
+                              method="PUT">
+                            <button type="submit" class="btn btn-outline-success ">
+                                Edit
+                            </button>
+                        </form>
+                    </div>
+                    <div style="padding: 2px">
+                        <form action="#" th:action="@{/questionnaires} + '/' + ${questionnaire.id}" method="POST">
+                            <input type="hidden" name="_method" value="DELETE"/>
+                            <button type="submit" class="btn btn-outline-danger">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</section>
+</body>
+
+</html>

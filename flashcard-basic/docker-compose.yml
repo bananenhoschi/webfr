@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  tomcat:
+    build: .
+    ports:
+      - "80:8080"
+    container_name: tomcat
+    volumes:
+      - ./logs/:/usr/local/tomcat/logs/
