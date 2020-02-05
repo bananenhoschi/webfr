@@ -1,0 +1,5 @@
+[2020-02-04T14:27:32.464] [DEBUG] app - Database URL used 'mongodb://localhost:27017/webfr'
+[2020-02-04T14:27:32.486] [INFO] app - Server started on port 9090
+[2020-02-04T14:27:49.628] [DEBUG] controller - index called
+[2020-02-04T14:27:49.703] [DEBUG] controller - Found 6 questionnaires
+[2020-02-04T14:28:06.987] [DEBUG] controller - Found questionnaire with id "5da57a4379eede5054bb6f99"

@@ -1,0 +1,7 @@
+group 'ch.fhnw'
+version '1.0-SNAPSHOT'
+
+dependencies {
+    compile project(':flashcard-basic')
+    compile project(':flashcard-express')
+}
